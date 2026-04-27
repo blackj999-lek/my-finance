@@ -4,7 +4,6 @@
     <title>My Finance</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        /* สไตล์ช่องค้นหา */
         #searchInput { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
@@ -13,13 +12,10 @@
 </head>
 <body>
     <h2>รายการบัตรเครดิต</h2>
-    
     <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
 
     <table id="financeTable">
-        <thead>
-            <tr id="headerRow"></tr>
-        </thead>
+        <thead><tr id="headerRow"></tr></thead>
         <tbody id="tableBody"></tbody>
     </table>
 
@@ -29,50 +25,53 @@
         fetch(API_URL)
             .then(res => res.json())
             .then(data => {
-                if (data.length > 0) {
-                    const keys = Object.keys(data[0]);
-                    const headerRow = document.getElementById('headerRow');
-                    keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
-                    
-                    const body = document.getElementById('tableBody');
-                    data.forEach(item => {
-                        let row = "<tr>";
-                 
-                         keys.forEach((key, index) => {
-    			let val = item[key];
-    
-    // ถ้าข้อมูลเป็นตัวเลข
-    if (typeof val === 'number') {
-        if (index === 0) {
-            // คอลัมน์แรก (index 0): แสดงแบบไม่มีทศนิยม
-            val = val.toLocaleString('th-TH', { maximumFractionDigits: 0 });
-        } else {
-            // คอลัมน์อื่นๆ: แสดงแบบทศนิยม 2 ตำแหน่ง (ตามเดิม)
-            val = val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-    }
-    
-    row += `<td>${val || '-'}</td>`;
-});   
-                            // ส่วนที่ 2: แปลงตัวเลขให้มีคอมม่า (,)
-                            if (typeof val === 'number') {
-                                val = val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                            
-                            row += `<td>${val || '-'}</td>`;
-                        });
-                        row += "</tr>";
-                        body.innerHTML += row;
-                    });
+                console.log("ข้อมูลที่ได้รับจาก Google:", data); // ดูใน Console F12 ว่าข้อมูลมาไหม
+                
+                if (!data || data.length === 0) {
+                    alert("ไม่พบข้อมูล หรือ API ส่งค่าว่างเปล่ามาครับ");
+                    return;
                 }
+
+                const keys = Object.keys(data[0]);
+                const headerRow = document.getElementById('headerRow');
+                keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
+                
+                const body = document.getElementById('tableBody');
+                body.innerHTML = "";
+                
+                data.forEach(item => {
+                    let row = "<tr>";
+                    keys.forEach((key, index) => {
+                        let val = item[key];
+                        
+                        // --- ส่วนแก้ไข: แปลง String เป็น Number ให้แม่นยำขึ้น ---
+                        // พยายามแปลงเป็นเลขก่อน (เผื่อมาเป็นข้อความ)
+                        let num = parseFloat(val);
+                        
+                        if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
+                            if (index === 0) {
+                                val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                            } else {
+                                val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                        }
+                        
+                        row += `<td>${val || '-'}</td>`;
+                    });
+                    row += "</tr>";
+                    body.innerHTML += row;
+                });
+            })
+            .catch(err => {
+                console.error("เกิดข้อผิดพลาด:", err);
+                alert("โหลดข้อมูลไม่ได้: " + err);
             });
 
-        // ฟังก์ชันสำหรับค้นหา (ส่วนที่ 3 ต่อ)
+        // ฟังก์ชันค้นหา
         document.getElementById('searchInput').addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
             let table = document.getElementById("financeTable");
             let tr = table.getElementsByTagName("tr");
-            
             for (let i = 1; i < tr.length; i++) {
                 let rowText = tr[i].innerText.toUpperCase();
                 tr[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
