@@ -1,24 +1,37 @@
-<!DOCTYPE html>
-<html>
-<body>
-  <table border="1" id="myTable">
-    <tr><th>ธนาคาร</th><th>ชื่อบัตร</th><th>ยอดหนี้</th></tr>
-  </table>
+<script>
+    // 1. ใส่ URL ของ Google Script ของคุณที่นี่ (อย่าลืมใส่เครื่องหมายคำพูด)
+    const API_URL = "ใส่_URL_ของคุณ_ที่นี่"; 
 
-  <script>
-    const URL = "ใส่_URL_ของคุณ_ที่นี่"; // URL ที่ได้หลังจาก Deploy ใหม่
-    
-    fetch(URL)
+    fetch(API_URL)
       .then(res => res.json())
       .then(data => {
-        const table = document.getElementById('myTable');
-        data.forEach(item => {
-          let row = table.insertRow();
-          row.insertCell(0).innerText = item.bank; // ชื่อหัวคอลัมน์ต้องตรงกับใน Sheet
-          row.insertCell(1).innerText = item.card;
-          row.insertCell(2).innerText = item.debt;
-        });
+        const body = document.getElementById('tableBody');
+        const headerRow = document.getElementById('headerRow');
+        
+        if (data.length > 0) {
+            // สร้างหัวตารางให้อัตโนมัติจากข้อมูลแถวแรก
+            const keys = Object.keys(data[0]);
+            
+            // เคลียร์หัวตารางเดิม (ถ้ามี)
+            headerRow.innerHTML = "";
+            keys.forEach(key => {
+                headerRow.innerHTML += `<th>${key}</th>`;
+            });
+
+            // ใส่ข้อมูลลงตาราง
+            body.innerHTML = ""; // เคลียร์ตารางเดิม
+            data.forEach(item => {
+                let row = "<tr>";
+                keys.forEach(key => {
+                    row += `<td>${item[key] || '-'}</td>`;
+                });
+                row += "</tr>";
+                body.innerHTML += row;
+            });
+        }
+      })
+      .catch(err => {
+          console.error("เกิดข้อผิดพลาด:", err);
+          document.body.innerHTML += "<p style='color:red;'>ไม่สามารถดึงข้อมูลได้: " + err + "</p>";
       });
-  </script>
-</body>
-</html>
+</script>
