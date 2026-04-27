@@ -4,13 +4,18 @@
     <title>My Finance</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        /* สไตล์ช่องค้นหา */
+        #searchInput { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f4f4f4; }
     </style>
 </head>
 <body>
     <h2>รายการบัตรเครดิต</h2>
+    
+    <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
+
     <table id="financeTable">
         <thead>
             <tr id="headerRow"></tr>
@@ -19,31 +24,46 @@
     </table>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec"; // URL ที่ได้จากขั้นตอน Deploy ใน Apps Script
+        const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
         
         fetch(API_URL)
             .then(res => res.json())
             .then(data => {
                 if (data.length > 0) {
-                    // สร้างหัวตารางอัตโนมัติ
                     const keys = Object.keys(data[0]);
                     const headerRow = document.getElementById('headerRow');
                     keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
                     
-                    // ใส่ข้อมูล
                     const body = document.getElementById('tableBody');
                     data.forEach(item => {
                         let row = "<tr>";
-                        keys.forEach(key => row += `<td>${item[key] || '-'}</td>`);
+                        keys.forEach(key => {
+                            let val = item[key];
+                            
+                            // ส่วนที่ 2: แปลงตัวเลขให้มีคอมม่า (,)
+                            if (typeof val === 'number') {
+                                val = val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                            
+                            row += `<td>${val || '-'}</td>`;
+                        });
                         row += "</tr>";
                         body.innerHTML += row;
-		// ตัวอย่างการแปลงเลข
-			let money = 57451.1;
-			console.log(money.toLocaleString('th-TH', { minimumFractionDigits: 2 })); 
-		// ผลลัพธ์: "57,451.10"
                     });
                 }
             });
+
+        // ฟังก์ชันสำหรับค้นหา (ส่วนที่ 3 ต่อ)
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            let filter = this.value.toUpperCase();
+            let table = document.getElementById("financeTable");
+            let tr = table.getElementsByTagName("tr");
+            
+            for (let i = 1; i < tr.length; i++) {
+                let rowText = tr[i].innerText.toUpperCase();
+                tr[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
+            }
+        });
     </script>
 </body>
 </html>
