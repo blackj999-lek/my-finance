@@ -37,9 +37,23 @@
                     const body = document.getElementById('tableBody');
                     data.forEach(item => {
                         let row = "<tr>";
-                        keys.forEach(key => {
-                            let val = item[key];
-                            
+                 
+                         keys.forEach((key, index) => {
+    			let val = item[key];
+    
+    // ถ้าข้อมูลเป็นตัวเลข
+    if (typeof val === 'number') {
+        if (index === 0) {
+            // คอลัมน์แรก (index 0): แสดงแบบไม่มีทศนิยม
+            val = val.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+        } else {
+            // คอลัมน์อื่นๆ: แสดงแบบทศนิยม 2 ตำแหน่ง (ตามเดิม)
+            val = val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    }
+    
+    row += `<td>${val || '-'}</td>`;
+});   
                             // ส่วนที่ 2: แปลงตัวเลขให้มีคอมม่า (,)
                             if (typeof val === 'number') {
                                 val = val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
