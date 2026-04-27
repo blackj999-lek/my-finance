@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <table border="1" id="myTable">
+    <tr><th>ธนาคาร</th><th>ชื่อบัตร</th><th>ยอดหนี้</th></tr>
+  </table>
+
+  <script>
+    const URL = "ใส่_URL_ของคุณ_ที่นี่"; // URL ที่ได้หลังจาก Deploy ใหม่
+    
+    fetch(URL)
+      .then(res => res.json())
+      .then(data => {
+        const table = document.getElementById('myTable');
+        data.forEach(item => {
+          let row = table.insertRow();
+          row.insertCell(0).innerText = item.bank; // ชื่อหัวคอลัมน์ต้องตรงกับใน Sheet
+          row.insertCell(1).innerText = item.card;
+          row.insertCell(2).innerText = item.debt;
+        });
+      });
+  </script>
+</body>
+</html>
