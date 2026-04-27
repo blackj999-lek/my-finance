@@ -37,6 +37,10 @@
                         keys.forEach(key => row += `<td>${item[key] || '-'}</td>`);
                         row += "</tr>";
                         body.innerHTML += row;
+		// ตัวอย่างการแปลงเลข
+			let money = 57451.1;
+			console.log(money.toLocaleString('th-TH', { minimumFractionDigits: 2 })); 
+		// ผลลัพธ์: "57,451.10"
                     });
                 }
             });
