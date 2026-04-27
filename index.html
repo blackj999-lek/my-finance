@@ -1,37 +1,45 @@
-<script>
-    // 1. ใส่ URL ของ Google Script ของคุณที่นี่ (อย่าลืมใส่เครื่องหมายคำพูด)
-    const API_URL = "ใส่_URL_ของคุณ_ที่นี่"; 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Finance</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h2>รายการบัตรเครดิต</h2>
+    <table id="financeTable">
+        <thead>
+            <tr id="headerRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
 
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(data => {
-        const body = document.getElementById('tableBody');
-        const headerRow = document.getElementById('headerRow');
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec"; // URL ที่ได้จากขั้นตอน Deploy ใน Apps Script
         
-        if (data.length > 0) {
-            // สร้างหัวตารางให้อัตโนมัติจากข้อมูลแถวแรก
-            const keys = Object.keys(data[0]);
-            
-            // เคลียร์หัวตารางเดิม (ถ้ามี)
-            headerRow.innerHTML = "";
-            keys.forEach(key => {
-                headerRow.innerHTML += `<th>${key}</th>`;
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    // สร้างหัวตารางอัตโนมัติ
+                    const keys = Object.keys(data[0]);
+                    const headerRow = document.getElementById('headerRow');
+                    keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
+                    
+                    // ใส่ข้อมูล
+                    const body = document.getElementById('tableBody');
+                    data.forEach(item => {
+                        let row = "<tr>";
+                        keys.forEach(key => row += `<td>${item[key] || '-'}</td>`);
+                        row += "</tr>";
+                        body.innerHTML += row;
+                    });
+                }
             });
-
-            // ใส่ข้อมูลลงตาราง
-            body.innerHTML = ""; // เคลียร์ตารางเดิม
-            data.forEach(item => {
-                let row = "<tr>";
-                keys.forEach(key => {
-                    row += `<td>${item[key] || '-'}</td>`;
-                });
-                row += "</tr>";
-                body.innerHTML += row;
-            });
-        }
-      })
-      .catch(err => {
-          console.error("เกิดข้อผิดพลาด:", err);
-          document.body.innerHTML += "<p style='color:red;'>ไม่สามารถดึงข้อมูลได้: " + err + "</p>";
-      });
-</script>
+    </script>
+</body>
+</html>
