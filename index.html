@@ -74,10 +74,11 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            font-size: 15px;
         }
         .submit-btn {
             padding: 12px 24px;
@@ -90,6 +91,12 @@
             font-size: 16px;
         }
         .submit-btn:hover { background-color: #218838; }
+        .info-note {
+            font-size: 13px;
+            color: #17a2b8;
+            margin-top: 5px;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
@@ -116,12 +123,16 @@
         <h2>คีย์ข้อมูลบันทึกยอดรายจ่ายรายเดือน</h2>
         <form id="financeForm" onsubmit="submitFinanceData(event)">
             <div class="form-group">
-                <label>รอบเดือนที่ต้องการคีย์เพิ่ม (เช่น พค.69, มิย.69)</label>
-                <input type="text" id="inputMonth" value="พค.69" required placeholder="เช่น พค.69">
+                <label>รอบเดือนที่ต้องการบันทึก (เช่น พค.69, มิย.69)</label>
+                <input type="text" id="inputMonth" value="พค.69" required onchange="autoFillExistingData()" placeholder="เช่น พค.69">
             </div>
             <div class="form-group">
                 <label>ธนาคาร / ชื่อบัตร</label>
-                <input type="text" id="inputBank" required placeholder="เช่น KBANK PASSION">
+                <select id="inputBank" required onchange="autoFillExistingData()">
+                    <option value="">-- กรุณาเลือกบัตร --</option>
+                </select>
+                <div class="info-note">*หากยังไม่มีรายชื่อบัตร สามารถพิมพ์ชื่อบัตรใหม่ในกล่องด้านล่างนี้ได้เลย:</div>
+                <input type="text" id="inputNewBank" placeholder="กรณีเป็นบัตรใบใหม่ (ถ้าเลือกบัตรด้านบนแล้วไม่ต้องกรอก)" style="margin-top:5px;" oninput="toggleBankInput()">
             </div>
             <div class="form-group">
                 <label>วันตัดยอด</label>
@@ -143,6 +154,7 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
         let showAllColumns = false; 
         const currentMonth = "พค.69"; // เดือนปัจจุบันสำหรับแสดงผลหน้าแรก
+        let globalData = []; // เก็บตัวแปรข้อมูลชั่วคราวเพื่อใช้ค้นหายอดเงินเก่า
         
         // ฟังก์ชันสลับแท็บเมนูหน้าจอ
         function switchTab(tabId) {
@@ -153,12 +165,23 @@
             event.target.classList.add('active');
         }
 
-        // ดึงข้อมูลตารางมาแสดงผล
+        // ดึงข้อมูลตารางและอัปเดตรายชื่อบัตรใน Drop-down
         function loadTableData() {
             fetch(API_URL)
                 .then(res => res.json())
                 .then(data => {
                     if (!data || data.length === 0) return;
+                    globalData = data; // บันทึกข้อมูลเข้า Global variable
+
+                    // --- อัปเดตรายชื่อบัตรลงใน drop-down เมนูอัตโนมัติ ---
+                    const selectBank = document.getElementById('inputBank');
+                    selectBank.innerHTML = '<option value="">-- กรุณาเลือกบัตร --</option>';
+                    data.forEach(item => {
+                        const cardName = item["ชื่อบัตร"] || item["ธนาคาร"] || Object.values(item)[1]; // หาคอลัมน์ชื่อบัตร
+                        if (cardName) {
+                            selectBank.innerHTML += `<option value="${cardName}">${cardName}</option>`;
+                        }
+                    });
 
                     const keys = Object.keys(data[0]);
                     const headerRow = document.getElementById('headerRow');
@@ -219,11 +242,52 @@
                 .catch(err => console.error("โหลดข้อมูลตารางไม่ได้:", err));
         }
 
+        // ฟังก์ชันเมื่อเปลี่ยนชื่อบัตรใหม่ (กรณีไม่มีในระบบดั้งเดิม) ให้ปิดการเลือกบัตรด้านบน
+        function toggleBankInput() {
+            const inputNewBank = document.getElementById('inputNewBank').value;
+            const selectBank = document.getElementById('inputBank');
+            if (inputNewBank.trim() !== "") {
+                selectBank.value = ""; // รีเซ็ต Dropdown
+                selectBank.disabled = true;
+            } else {
+                selectBank.disabled = false;
+            }
+        }
+
+        // --- ระบบ Auto-fill: ดึงข้อมูลเดิมมาแสดงหากเป็นบัตรซ้ำ ---
+        function autoFillExistingData() {
+            const selectedBank = document.getElementById('inputBank').value;
+            const targetMonth = document.getElementById('inputMonth').value.trim();
+            const inputLimit = document.getElementById('inputLimit');
+            const inputBalance = document.getElementById('inputBalance');
+            const inputPayAmount = document.getElementById('inputPayAmount');
+
+            if (!selectedBank || !targetMonth || globalData.length === 0) return;
+
+            // ค้นหาแถวข้อมูลของบัตรที่เลือก
+            const matchedRow = globalData.find(item => {
+                const cardName = item["ชื่อบัตร"] || item["ธนาคาร"] || Object.values(item)[1];
+                return cardName && cardName.toString().trim() === selectedBank.trim();
+            });
+
+            if (matchedRow) {
+                // เติมวันตัดยอดเดิมอัตโนมัติ
+                const limitVal = Object.values(matchedRow)[0];
+                inputLimit.value = (limitVal !== undefined && !isNaN(limitVal)) ? limitVal : "";
+
+                // ค้นหายอดเงินเดิมในเดือนนั้น ๆ (ถ้ามี)
+                const balanceColName = "ยอดค้าง " + targetMonth;
+                const payColName = "ยอดจ่าย " + targetMonth;
+
+                inputBalance.value = matchedRow[balanceColName] !== undefined ? matchedRow[balanceColName] : "";
+                inputPayAmount.value = matchedRow[payColName] !== undefined ? matchedRow[payColName] : "";
+            }
+        }
+
         function isFinanceColumn(keyStr) {
             return keyStr.startsWith('ยอดค้าง') || keyStr.startsWith('ยอดจ่าย') || keyStr.startsWith('ยอดชำระ') || keyStr.startsWith('ยอดคงเหลือ');
         }
 
-        // ฟังก์ชันสลับสถานะซ่อน/เปิดเผยข้อมูลเดือนก่อน ๆ
         function toggleMonths() {
             showAllColumns = !showAllColumns;
             const btn = document.getElementById('toggleBtn');
@@ -249,16 +313,27 @@
             }
         }
 
-        // ฟังก์ชันสำหรับ "คีย์ส่งข้อมูลเข้า Google Sheet"
+        // ฟังก์ชันส่งข้อมูลคีย์เข้า Google Sheets
         function submitFinanceData(event) {
             event.preventDefault();
             const submitBtn = document.querySelector('.submit-btn');
             submitBtn.innerText = "กำลังบันทึกข้อมูล...";
             submitBtn.disabled = true;
 
+            const selectedBank = document.getElementById('inputBank').value;
+            const newBank = document.getElementById('inputNewBank').value;
+            const finalBankName = selectedBank || newBank;
+
+            if (!finalBankName) {
+                alert("กรุณาเลือกบัตร หรือกรอกชื่อบัตรใหม่ครับ");
+                submitBtn.innerText = "ส่งข้อมูลไปที่ Google Sheet";
+                submitBtn.disabled = false;
+                return;
+            }
+
             const postData = {
                 month: document.getElementById('inputMonth').value,
-                bank: document.getElementById('inputBank').value,
+                bank: finalBankName,
                 limit: document.getElementById('inputLimit').value,
                 balance: document.getElementById('inputBalance').value,
                 payAmount: document.getElementById('inputPayAmount').value
@@ -271,13 +346,12 @@
             .then(res => res.json())
             .then(result => {
                 if (result.status === "success") {
-                    alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+                    alert("บันทึกและอัปเดตข้อมูลเรียบร้อยแล้ว!");
                     document.getElementById('financeForm').reset();
-                    // เปลี่ยนค่ากลับ
+                    document.getElementById('inputBank').disabled = false;
                     document.getElementById('inputMonth').value = postData.month;
-                    // โหลดตารางใหม่หลังข้อมูลเปลี่ยน
-                    loadTableData();
-                    switchTab('main-tab');
+                    loadTableData(); // รีเฟรชตารางใหม่
+                    switchTab('main-tab'); // สลับกลับไปหน้าสรุป
                 } else {
                     alert("บันทึกไม่สำเร็จ: " + result.message);
                 }
@@ -291,7 +365,6 @@
             });
         }
 
-        // ค้นหาตารางหน้าแรก
         document.getElementById('searchInput').addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
             let table = document.getElementById("financeTable");
@@ -302,7 +375,6 @@
             }
         });
 
-        // ดึงตารางมาแสดงตอนโหลดเข้าหน้าแรก
         window.onload = loadTableData;
     </script>
 </body>
