@@ -3,8 +3,36 @@
 <head>
     <title>My Finance</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
+        body { font-family: sans-serif; padding: 20px; background-color: #f8f9fa; }
         
+        /* สไตล์สำหรับ Tabs เมนูด้านบน */
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            outline: none;
+            transition: 0.2s;
+        }
+        .tab-button.active {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
         /* จัดตำแหน่งเครื่องมือค้นหาและปุ่ม */
         .controls-container {
             display: flex;
@@ -16,7 +44,6 @@
             padding: 12px; 
             box-sizing: border-box; 
         }
-        /* ปุ่มเปิด/ปิดคอลัมน์ */
         #toggleBtn {
             padding: 12px 20px;
             background-color: #007bff;
@@ -27,129 +54,176 @@
             font-weight: bold;
             white-space: nowrap;
         }
-        #toggleBtn:hover {
-            background-color: #0056b3;
-        }
+        #toggleBtn:hover { background-color: #0056b3; }
 
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background-color: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #f4f4f4; }
         
-        /* สไตล์พิเศษสำหรับตัวเลขสีแดงเฉพาะคอลัมน์ยอดค้าง */
         .text-danger { color: #d9534f !important; font-weight: bold; }
-        
-        /* คลาสสำหรับสั่งซ่อนคอลัมน์ */
         .hidden-col { display: none !important; }
+
+        /* สไตล์หน้าฟอร์มคีย์ข้อมูล */
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .submit-btn {
+            padding: 12px 24px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-btn:hover { background-color: #218838; }
     </style>
 </head>
 <body>
-    <h2>รายการบัตรเครดิต</h2>
-    
-    <div class="controls-container">
-        <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
-        <button id="toggleBtn" onclick="toggleMonths()">แสดงเดือนอื่นย้อนหลัง</button>
+
+    <div class="tab-container">
+        <button class="tab-button active" onclick="switchTab('main-tab')">ตารางสรุปหนี้</button>
+        <button class="tab-button" onclick="switchTab('expense-tab')">บันทึกยอดรายจ่าย</button>
     </div>
 
-    <table id="financeTable">
-        <thead><tr id="headerRow"></tr></thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+    <div id="main-tab" class="tab-content active">
+        <h2>รายการบัตรเครดิต</h2>
+        <div class="controls-container">
+            <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
+            <button id="toggleBtn" onclick="toggleMonths()">แสดงเดือนอื่นย้อนหลัง</button>
+        </div>
+
+        <table id="financeTable">
+            <thead><tr id="headerRow"></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="expense-tab" class="tab-content">
+        <h2>คีย์ข้อมูลบันทึกยอดรายจ่ายรายเดือน</h2>
+        <form id="financeForm" onsubmit="submitFinanceData(event)">
+            <div class="form-group">
+                <label>รอบเดือนที่ต้องการคีย์เพิ่ม (เช่น พค.69, มิย.69)</label>
+                <input type="text" id="inputMonth" value="พค.69" required placeholder="เช่น พค.69">
+            </div>
+            <div class="form-group">
+                <label>ธนาคาร / ชื่อบัตร</label>
+                <input type="text" id="inputBank" required placeholder="เช่น KBANK PASSION">
+            </div>
+            <div class="form-group">
+                <label>วันตัดยอด</label>
+                <input type="number" id="inputLimit" placeholder="เช่น 20">
+            </div>
+            <div class="form-group">
+                <label>ยอดค้าง (ยอดเงินที่เป็นหนี้)</label>
+                <input type="number" step="0.01" id="inputBalance" required placeholder="เช่น 15000">
+            </div>
+            <div class="form-group">
+                <label>ยอดจ่าย (ยอดเงินชำระคืน)</label>
+                <input type="number" step="0.01" id="inputPayAmount" required placeholder="เช่น 15000">
+            </div>
+            <button type="submit" class="submit-btn">ส่งข้อมูลไปที่ Google Sheet</button>
+        </form>
+    </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
-        let showAllColumns = false; // เริ่มต้น: ซ่อนเดือนอื่น แสดงเฉพาะเดือนล่าสุด
+        let showAllColumns = false; 
+        const currentMonth = "พค.69"; // เดือนปัจจุบันสำหรับแสดงผลหน้าแรก
         
-        // กำหนดเดือนปัจจุบันที่ต้องการให้โชว์ตรงนี้ (เปลี่ยนตรงนี้เมื่อขึ้นเดือนใหม่ได้ง่ายๆ ครับ)
-        const currentMonth = "พค.69"; 
-        
-        fetch(API_URL)
-            .then(res => res.json())
-            .then(data => {
-                console.log("ข้อมูลที่ได้รับจาก Google:", data);
-                
-                if (!data || data.length === 0) {
-                    alert("ไม่พบข้อมูล หรือ API ส่งค่าว่างเปล่ามาครับ");
-                    return;
-                }
+        // ฟังก์ชันสลับแท็บเมนูหน้าจอ
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
 
-                const keys = Object.keys(data[0]);
+        // ดึงข้อมูลตารางมาแสดงผล
+        function loadTableData() {
+            fetch(API_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || data.length === 0) return;
 
-                // --- ขั้นตอนที่ 1: สร้างหัวตารางพร้อมจัดกลุ่มคลาสซ่อน ---
-                const headerRow = document.getElementById('headerRow');
-                headerRow.innerHTML = "";
-                
-                keys.forEach((key) => {
-                    const keyStr = key.toString().trim();
-                    let className = "";
+                    const keys = Object.keys(data[0]);
+                    const headerRow = document.getElementById('headerRow');
+                    headerRow.innerHTML = "";
                     
-                    if (isFinanceColumn(keyStr)) {
-                        // ถ้าคอลัมน์เกี่ยวกับเงิน มีคำว่า พค.69 (เช่น "ยอดค้าง พค.69" หรือ "ยอดจ่าย พค.69") ให้แสดงปกติ
-                        if (keyStr.includes(currentMonth)) {
-                            className = "class='month-col'";
-                        } else {
-                            // ถ้าเป็นเดือนอื่น ให้ใส่คลาสเพื่อสั่งซ่อนไว้ก่อนทันที
-                            className = "class='month-col hidden-col'";
-                        }
-                    }
-                    headerRow.innerHTML += `<th ${className}>${key}</th>`;
-                });
-                
-                // --- ขั้นตอนที่ 2: ใส่ข้อมูลรายบรรทัด ---
-                const body = document.getElementById('tableBody');
-                body.innerHTML = "";
-                
-                data.forEach(item => {
-                    let row = "<tr>";
-                    keys.forEach((key, index) => {
-                        let val = item[key];
+                    keys.forEach((key) => {
                         const keyStr = key.toString().trim();
-                        let isNumber = false;
-                        
-                        // พยายามแปลงเป็นตัวเลขเพื่อจัดรูปแบบทศนิยมและการคอมม่าคั่นเงิน
-                        let num = parseFloat(val);
-                        if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
-                            isNumber = true;
-                            if (index === 0 || index === 1) {
-                                // วันตัดยอด และ หมายเหตุ: แสดงเป็นเลขจำนวนเต็มไม่มีทศนิยม
-                                val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
-                            } else {
-                                // คอลัมน์การเงินอื่น ๆ: แสดงแบบมีทศนิยม 2 ตำแหน่ง
-                                val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                        }
-                        
-                        // จัดกลุ่มคลาสซ่อนของเซลล์ข้อมูลให้ตรงกันกับหัวข้อตาราง
-                        let cellClass = "";
+                        let className = "";
                         if (isFinanceColumn(keyStr)) {
                             if (keyStr.includes(currentMonth)) {
-                                cellClass = "month-col";
+                                className = "class='month-col'";
                             } else {
-                                cellClass = "month-col hidden-col";
+                                className = "class='month-col hidden-col'";
                             }
                         }
-                        
-                        // ใส่สีแดงให้เฉพาะคอลัมน์ที่เป็น "ยอดค้าง" (ไม่เกี่ยวกับ ยอดจ่าย) และยอดมากกว่า 0
-                        if (keyStr.startsWith('ยอดค้าง') && isNumber && num > 0) {
-                            cellClass += " text-danger";
-                        }
-                        
-                        row += `<td class="${cellClass}">${val || '-'}</td>`;
+                        headerRow.innerHTML += `<th ${className}>${key}</th>`;
                     });
-                    row += "</tr>";
-                    body.innerHTML += row;
-                });
-            })
-            .catch(err => {
-                console.error("เกิดข้อผิดพลาด:", err);
-                alert("โหลดข้อมูลไม่ได้: " + err);
-            });
+                    
+                    const body = document.getElementById('tableBody');
+                    body.innerHTML = "";
+                    
+                    data.forEach(item => {
+                        let row = "<tr>";
+                        keys.forEach((key, index) => {
+                            let val = item[key];
+                            const keyStr = key.toString().trim();
+                            let isNumber = false;
+                            
+                            let num = parseFloat(val);
+                            if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
+                                isNumber = true;
+                                if (index === 0 || index === 1) {
+                                    val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                                } else {
+                                    val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            }
+                            
+                            let cellClass = "";
+                            if (isFinanceColumn(keyStr)) {
+                                if (keyStr.includes(currentMonth)) {
+                                    cellClass = "month-col";
+                                } else {
+                                    cellClass = "month-col hidden-col";
+                                }
+                            }
+                            
+                            if (keyStr.startsWith('ยอดค้าง') && isNumber && num > 0) {
+                                cellClass += " text-danger";
+                            }
+                            
+                            row += `<td class="${cellClass}">${val || '-'}</td>`;
+                        });
+                        row += "</tr>";
+                        body.innerHTML += row;
+                    });
+                })
+                .catch(err => console.error("โหลดข้อมูลตารางไม่ได้:", err));
+        }
 
-        // ฟังก์ชันช่วยแยกประเภทคอลัมน์การเงินประจำเดือน
         function isFinanceColumn(keyStr) {
             return keyStr.startsWith('ยอดค้าง') || keyStr.startsWith('ยอดจ่าย') || keyStr.startsWith('ยอดชำระ') || keyStr.startsWith('ยอดคงเหลือ');
         }
 
-        // --- ขั้นตอนที่ 3: สลับการแสดงผลคอลัมน์เดือนอื่นย้อนหลัง ---
+        // ฟังก์ชันสลับสถานะซ่อน/เปิดเผยข้อมูลเดือนก่อน ๆ
         function toggleMonths() {
             showAllColumns = !showAllColumns;
             const btn = document.getElementById('toggleBtn');
@@ -157,7 +231,6 @@
             
             elements.forEach(el => {
                 const text = el.innerText || el.textContent;
-                // สลับซ่อน/แสดง เฉพาะคอลัมน์ที่ไม่ได้อยู่ในเดือนปัจจุบัน (พค.69)
                 if (!text.includes(currentMonth) && !el.className.includes(currentMonth)) {
                     if (showAllColumns) {
                         el.classList.remove('hidden-col');
@@ -167,17 +240,58 @@
                 }
             });
 
-            // เปลี่ยนสีปุ่มและข้อความเมื่อมีการสลับโหมด
             if (showAllColumns) {
                 btn.innerText = "ซ่อนเดือนอื่น";
-                btn.style.backgroundColor = "#28a745"; // สีเขียวเมื่อตารางกางออก
+                btn.style.backgroundColor = "#28a745";
             } else {
                 btn.innerText = "แสดงเดือนอื่นย้อนหลัง";
-                btn.style.backgroundColor = "#007bff"; // สีน้ำเงินเมื่อหุบตาราง
+                btn.style.backgroundColor = "#007bff";
             }
         }
 
-        // ฟังก์ชันสำหรับค้นหา (Search)
+        // ฟังก์ชันสำหรับ "คีย์ส่งข้อมูลเข้า Google Sheet"
+        function submitFinanceData(event) {
+            event.preventDefault();
+            const submitBtn = document.querySelector('.submit-btn');
+            submitBtn.innerText = "กำลังบันทึกข้อมูล...";
+            submitBtn.disabled = true;
+
+            const postData = {
+                month: document.getElementById('inputMonth').value,
+                bank: document.getElementById('inputBank').value,
+                limit: document.getElementById('inputLimit').value,
+                balance: document.getElementById('inputBalance').value,
+                payAmount: document.getElementById('inputPayAmount').value
+            };
+
+            fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify(postData)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === "success") {
+                    alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+                    document.getElementById('financeForm').reset();
+                    // เปลี่ยนค่ากลับ
+                    document.getElementById('inputMonth').value = postData.month;
+                    // โหลดตารางใหม่หลังข้อมูลเปลี่ยน
+                    loadTableData();
+                    switchTab('main-tab');
+                } else {
+                    alert("บันทึกไม่สำเร็จ: " + result.message);
+                }
+            })
+            .catch(err => {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: " + err);
+            })
+            .finally(() => {
+                submitBtn.innerText = "ส่งข้อมูลไปที่ Google Sheet";
+                submitBtn.disabled = false;
+            });
+        }
+
+        // ค้นหาตารางหน้าแรก
         document.getElementById('searchInput').addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
             let table = document.getElementById("financeTable");
@@ -187,6 +301,9 @@
                 tr[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
             }
         });
+
+        // ดึงตารางมาแสดงตอนโหลดเข้าหน้าแรก
+        window.onload = loadTableData;
     </script>
 </body>
 </html>
