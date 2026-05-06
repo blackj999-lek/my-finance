@@ -4,10 +4,14 @@
     <title>My Finance</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
+        /* สไตล์ช่องค้นหา */
         #searchInput { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f4f4f4; }
+        
+        /* สไตล์พิเศษสำหรับตัวเลขสีแดง */
+        .text-danger { color: #d9534f; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -25,7 +29,7 @@
         fetch(API_URL)
             .then(res => res.json())
             .then(data => {
-                console.log("ข้อมูลที่ได้รับจาก Google:", data); // ดูใน Console F12 ว่าข้อมูลมาไหม
+                console.log("ข้อมูลที่ได้รับจาก Google:", data);
                 
                 if (!data || data.length === 0) {
                     alert("ไม่พบข้อมูล หรือ API ส่งค่าว่างเปล่ามาครับ");
@@ -34,6 +38,7 @@
 
                 const keys = Object.keys(data[0]);
                 const headerRow = document.getElementById('headerRow');
+                headerRow.innerHTML = "";
                 keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
                 
                 const body = document.getElementById('tableBody');
@@ -43,20 +48,34 @@
                     let row = "<tr>";
                     keys.forEach((key, index) => {
                         let val = item[key];
+                        let isNumber = false;
                         
-                        // --- ส่วนแก้ไข: แปลง String เป็น Number ให้แม่นยำขึ้น ---
-                        // พยายามแปลงเป็นเลขก่อน (เผื่อมาเป็นข้อความ)
+                        // พยายามแปลงเป็นตัวเลขเพื่อจัดรูปแบบ
                         let num = parseFloat(val);
-                        
                         if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
+                            isNumber = true;
                             if (index === 0) {
+                                // คอลัมน์แรก (index 0): แสดงแบบไม่มีทศนิยม
                                 val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
                             } else {
+                                // คอลัมน์อื่นๆ: แสดงแบบทศนิยม 2 ตำแหน่ง
                                 val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                         }
                         
-                        row += `<td>${val || '-'}</td>`;
+                        // แก้ไขใหม่: เช็คว่าหัวตารางมีคำว่า "ยอดค้าง" หรือ "ยอดหนี้" หรือ "ยอดคงเหลือ" อยู่ในนั้นหรือไม่ (ไม่จำเป็นต้องตรงเป๊ะ)
+                        const keyLower = key.toString().trim();
+                        const isTargetColumn = keyLower.includes('ยอดค้าง') || 
+                                               keyLower.includes('ยอดหนี้') || 
+                                               keyLower.includes('ยอดคงเหลือ') ||
+                                               keyLower.includes('ยอดชำระ');
+                        
+                        if (isTargetColumn && isNumber && num > 0) {
+                            // ถ้าเป็นคอลัมน์เป้าหมาย และยอดเงินมากกว่า 0 ให้ใส่ตัวอักษรสีแดง
+                            row += `<td class="text-danger">${val}</td>`;
+                        } else {
+                            row += `<td>${val || '-'}</td>`;
+                        }
                     });
                     row += "</tr>";
                     body.innerHTML += row;
