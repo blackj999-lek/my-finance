@@ -35,7 +35,7 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f4f4f4; }
         
-        /* สไตล์พิเศษสำหรับตัวเลขสีแดง */
+        /* สไตล์พิเศษสำหรับตัวเลขสีแดงเฉพาะคอลัมน์ยอดค้าง */
         .text-danger { color: #d9534f !important; font-weight: bold; }
         
         /* คลาสสำหรับสั่งซ่อนคอลัมน์ */
@@ -58,7 +58,9 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
         let showAllColumns = false; // เริ่มต้น: ซ่อนเดือนอื่น แสดงเฉพาะเดือนล่าสุด
-        let targetMonthString = ""; // ตัวแปรเก็บชื่อเดือนล่าสุด เช่น "พค.69"
+        
+        // กำหนดเดือนปัจจุบันที่ต้องการให้โชว์ตรงนี้ (เปลี่ยนตรงนี้เมื่อขึ้นเดือนใหม่ได้ง่ายๆ ครับ)
+        const currentMonth = "พค.69"; 
         
         fetch(API_URL)
             .then(res => res.json())
@@ -71,22 +73,8 @@
                 }
 
                 const keys = Object.keys(data[0]);
-                
-                // --- ขั้นตอนที่ 1: ค้นหาเดือนล่าสุดแบบแม่นยำ ---
-                // ไล่จากคอลัมน์ซ้ายไปขวาเพื่อจับกลุ่มคำ "ยอดค้าง" แล้วตัดคำหาส่วนท้ายของเดือนล่าสุดมาเก็บไว้
-                for (let i = 0; i < keys.length; i++) {
-                    const keyStr = keys[i].toString().trim();
-                    if (keyStr.startsWith("ยอดค้าง")) {
-                        // สกัดคำท้ายสุดออกมา เช่น จาก "ยอดค้าง พค.69" -> ได้ "พค.69"
-                        const parts = keyStr.split(/\s+/);
-                        if (parts.length > 1) {
-                            targetMonthString = parts[parts.length - 1]; 
-                        }
-                    }
-                }
-                console.log("เดือนล่าสุดที่ตรวจพบเพื่อแสดงผลคือ:", targetMonthString);
 
-                // --- ขั้นตอนที่ 2: สร้างหัวตารางพร้อมจัดระเบียบคลาสซ่อน ---
+                // --- ขั้นตอนที่ 1: สร้างหัวตารางพร้อมจัดกลุ่มคลาสซ่อน ---
                 const headerRow = document.getElementById('headerRow');
                 headerRow.innerHTML = "";
                 
@@ -95,17 +83,18 @@
                     let className = "";
                     
                     if (isFinanceColumn(keyStr)) {
-                        // ถ้าเป็นคอลัมน์ที่เกี่ยวกับเงิน แต่ไม่ใช่เดือนล่าสุด ให้ใส่คลาสซ่อนไว้ก่อน
-                        if (!keyStr.includes(targetMonthString)) {
-                            className = "class='month-col hidden-col'";
-                        } else {
+                        // ถ้าคอลัมน์เกี่ยวกับเงิน มีคำว่า พค.69 (เช่น "ยอดค้าง พค.69" หรือ "ยอดจ่าย พค.69") ให้แสดงปกติ
+                        if (keyStr.includes(currentMonth)) {
                             className = "class='month-col'";
+                        } else {
+                            // ถ้าเป็นเดือนอื่น ให้ใส่คลาสเพื่อสั่งซ่อนไว้ก่อนทันที
+                            className = "class='month-col hidden-col'";
                         }
                     }
                     headerRow.innerHTML += `<th ${className}>${key}</th>`;
                 });
                 
-                // --- ขั้นตอนที่ 3: ใส่ข้อมูลรายบรรทัด ---
+                // --- ขั้นตอนที่ 2: ใส่ข้อมูลรายบรรทัด ---
                 const body = document.getElementById('tableBody');
                 body.innerHTML = "";
                 
@@ -121,25 +110,25 @@
                         if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
                             isNumber = true;
                             if (index === 0 || index === 1) {
-                                // วันตัดยอด และ หมายเหตุ (คอลัมน์แรก ๆ): จัดแบบจำนวนเต็มไม่มีทศนิยมเด็ดขาด
+                                // วันตัดยอด และ หมายเหตุ: แสดงเป็นเลขจำนวนเต็มไม่มีทศนิยม
                                 val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
                             } else {
-                                // คอลัมน์การเงินอื่น ๆ: จัดแบบทศนิยม 2 ตำแหน่ง
+                                // คอลัมน์การเงินอื่น ๆ: แสดงแบบมีทศนิยม 2 ตำแหน่ง
                                 val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                         }
                         
-                        // จัดกลุ่มคลาสในการซ่อน/แสดงผลให้ตรงกับหัวข้อตาราง
+                        // จัดกลุ่มคลาสซ่อนของเซลล์ข้อมูลให้ตรงกันกับหัวข้อตาราง
                         let cellClass = "";
                         if (isFinanceColumn(keyStr)) {
-                            if (!keyStr.includes(targetMonthString)) {
-                                cellClass = "month-col hidden-col";
-                            } else {
+                            if (keyStr.includes(currentMonth)) {
                                 cellClass = "month-col";
+                            } else {
+                                cellClass = "month-col hidden-col";
                             }
                         }
                         
-                        // กรองคำเฉพาะ "ยอดค้าง" และต้องเป็นตัวเลขที่มีมูลค่ามากกว่า 0 เพื่อระบุเป็นสีแดง
+                        // ใส่สีแดงให้เฉพาะคอลัมน์ที่เป็น "ยอดค้าง" (ไม่เกี่ยวกับ ยอดจ่าย) และยอดมากกว่า 0
                         if (keyStr.startsWith('ยอดค้าง') && isNumber && num > 0) {
                             cellClass += " text-danger";
                         }
@@ -160,7 +149,7 @@
             return keyStr.startsWith('ยอดค้าง') || keyStr.startsWith('ยอดจ่าย') || keyStr.startsWith('ยอดชำระ') || keyStr.startsWith('ยอดคงเหลือ');
         }
 
-        // --- ขั้นตอนที่ 4: สลับการแสดงผลคอลัมน์เดือนอื่นย้อนหลัง ---
+        // --- ขั้นตอนที่ 3: สลับการแสดงผลคอลัมน์เดือนอื่นย้อนหลัง ---
         function toggleMonths() {
             showAllColumns = !showAllColumns;
             const btn = document.getElementById('toggleBtn');
@@ -168,8 +157,8 @@
             
             elements.forEach(el => {
                 const text = el.innerText || el.textContent;
-                // ถ้าคอลัมน์ไม่มีคำระบุเดือนปัจจุบัน ให้ประมวลผลการซ่อน/แสดง
-                if (!text.includes(targetMonthString)) {
+                // สลับซ่อน/แสดง เฉพาะคอลัมน์ที่ไม่ได้อยู่ในเดือนปัจจุบัน (พค.69)
+                if (!text.includes(currentMonth) && !el.className.includes(currentMonth)) {
                     if (showAllColumns) {
                         el.classList.remove('hidden-col');
                     } else {
@@ -178,13 +167,13 @@
                 }
             });
 
-            // เปลี่ยนหน้าตาและข้อความของปุ่มตามสถานะการเปิด/ปิดตารางย้อนหลัง
+            // เปลี่ยนสีปุ่มและข้อความเมื่อมีการสลับโหมด
             if (showAllColumns) {
                 btn.innerText = "ซ่อนเดือนอื่น";
-                btn.style.backgroundColor = "#28a745"; // สลับเป็นสีเขียวเมื่อตารางกางออก
+                btn.style.backgroundColor = "#28a745"; // สีเขียวเมื่อตารางกางออก
             } else {
                 btn.innerText = "แสดงเดือนอื่นย้อนหลัง";
-                btn.style.backgroundColor = "#007bff"; // สลับเป็นสีน้ำเงินเมื่อย่อตารางลง
+                btn.style.backgroundColor = "#007bff"; // สีน้ำเงินเมื่อหุบตาราง
             }
         }
 
