@@ -4,19 +4,51 @@
     <title>My Finance</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        /* สไตล์ช่องค้นหา */
-        #searchInput { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; }
+        
+        /* จัดตำแหน่งเครื่องมือค้นหาและปุ่ม */
+        .controls-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #searchInput { 
+            flex: 1; 
+            padding: 12px; 
+            box-sizing: border-box; 
+        }
+        /* ปุ่มเปิด/ปิดคอลัมน์ */
+        #toggleBtn {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        #toggleBtn:hover {
+            background-color: #0056b3;
+        }
+
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f4f4f4; }
         
         /* สไตล์พิเศษสำหรับตัวเลขสีแดง */
         .text-danger { color: #d9534f; font-weight: bold; }
+        
+        /* คลาสสำหรับซ่อนคอลัมน์ */
+        .hidden-col { display: none; }
     </style>
 </head>
 <body>
     <h2>รายการบัตรเครดิต</h2>
-    <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
+    
+    <div class="controls-container">
+        <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
+        <button id="toggleBtn" onclick="toggleMonths()">แสดงเดือนอื่นย้อนหลัง</button>
+    </div>
 
     <table id="financeTable">
         <thead><tr id="headerRow"></tr></thead>
@@ -25,6 +57,8 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
+        let showAllColumns = false; // สถานะเริ่มต้น: ซ่อนเดือนอื่น แสดงเฉพาะเดือนล่าสุด
+        let targetMonthString = ""; // ตัวแปรเก็บชื่อเดือนล่าสุด เช่น "พค.69"
         
         fetch(API_URL)
             .then(res => res.json())
@@ -37,10 +71,35 @@
                 }
 
                 const keys = Object.keys(data[0]);
+                
+                // --- ขั้นตอนที่ 1: ค้นหาว่าเดือนล่าสุดในตารางคือเดือนอะไร ---
+                // โดยค้นหาคำว่า "ยอดค้าง" หรือ "ยอดจ่าย" ในหัวตารางเพื่อแกะเอาชื่อเดือนออกมา (เช่น "พค.69")
+                for (let i = keys.length - 1; i >= 0; i--) {
+                    if (keys[i].includes("ยอดค้าง") || keys[i].includes("ยอดจ่าย")) {
+                        const parts = keys[i].split(" ");
+                        if (parts.length > 1) {
+                            targetMonthString = parts[parts.length - 1]; // จะได้ "พค.69" หรือเดือนล่าสุดที่มีในชีต
+                            break;
+                        }
+                    }
+                }
+
+                // --- ขั้นตอนที่ 2: สร้างหัวตาราง (พร้อมวิเคราะห์ว่าจะซ่อนหรือไม่) ---
                 const headerRow = document.getElementById('headerRow');
                 headerRow.innerHTML = "";
-                keys.forEach(key => headerRow.innerHTML += `<th>${key}</th>`);
                 
+                keys.forEach((key, index) => {
+                    let className = "";
+                    // ถ้าคอลัมน์นั้นเกี่ยวกับยอดเงิน (ยอดค้าง/ยอดจ่าย) แต่ไม่ใช่ของเดือนล่าสุด ให้ระบุคลาสสำหรับซ่อนไว้
+                    if (isFinanceColumn(key) && !key.includes(targetMonthString)) {
+                        className = "class='month-col hidden-col'";
+                    } else if (isFinanceColumn(key)) {
+                        className = "class='month-col'";
+                    }
+                    headerRow.innerHTML += `<th ${className}>${key}</th>`;
+                });
+                
+                // --- ขั้นตอนที่ 3: ใส่ข้อมูลรายบรรทัด ---
                 const body = document.getElementById('tableBody');
                 body.innerHTML = "";
                 
@@ -55,27 +114,26 @@
                         if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
                             isNumber = true;
                             if (index === 0) {
-                                // คอลัมน์แรก (index 0): แสดงแบบไม่มีทศนิยม
                                 val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
                             } else {
-                                // คอลัมน์อื่นๆ: แสดงแบบทศนิยม 2 ตำแหน่ง
                                 val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                         }
                         
-                        // แก้ไขใหม่: เช็คว่าหัวตารางมีคำว่า "ยอดค้าง" หรือ "ยอดหนี้" หรือ "ยอดคงเหลือ" อยู่ในนั้นหรือไม่ (ไม่จำเป็นต้องตรงเป๊ะ)
-                        const keyLower = key.toString().trim();
-                        const isTargetColumn = keyLower.includes('ยอดค้าง') || 
-                                               keyLower.includes('ยอดหนี้') || 
-                                               keyLower.includes('ยอดคงเหลือ') ||
-                                               keyLower.includes('ยอดชำระ');
-                        
-                        if (isTargetColumn && isNumber && num > 0) {
-                            // ถ้าเป็นคอลัมน์เป้าหมาย และยอดเงินมากกว่า 0 ให้ใส่ตัวอักษรสีแดง
-                            row += `<td class="text-danger">${val}</td>`;
-                        } else {
-                            row += `<td>${val || '-'}</td>`;
+                        // ตรวจสอบคลาสที่จะซ่อนข้อมูลรายบรรทัดให้ตรงกับหัวตาราง
+                        let cellClass = "";
+                        if (isFinanceColumn(key) && !key.includes(targetMonthString)) {
+                            cellClass = "month-col hidden-col";
+                        } else if (isFinanceColumn(key)) {
+                            cellClass = "month-col";
                         }
+                        
+                        // ตรวจเช็คเพื่อทำตัวเลขสีแดงเฉพาะคอลัมน์ที่เป็น "ยอดค้าง"
+                        if (key.includes('ยอดค้าง') && isNumber && num > 0) {
+                            cellClass += " text-danger";
+                        }
+                        
+                        row += `<td class="${cellClass}">${val || '-'}</td>`;
                     });
                     row += "</tr>";
                     body.innerHTML += row;
@@ -86,7 +144,39 @@
                 alert("โหลดข้อมูลไม่ได้: " + err);
             });
 
-        // ฟังก์ชันค้นหา
+        // ฟังก์ชันช่วยเช็คว่าเป็นคอลัมน์การเงินของแต่ละเดือนหรือไม่
+        function isFinanceColumn(key) {
+            return key.includes('ยอดค้าง') || key.includes('ยอดจ่าย') || key.includes('ยอดชำระ') || key.includes('ยอดคงเหลือ');
+        }
+
+        // --- ขั้นตอนที่ 4: ฟังก์ชันปุ่มกดสลับการแสดงผล ---
+        function toggleMonths() {
+            showAllColumns = !showAllColumns;
+            const btn = document.getElementById('toggleBtn');
+            const hiddenElements = document.querySelectorAll('.month-col');
+            
+            hiddenElements.forEach(el => {
+                // ถ้าคอลัมน์นั้นไม่ใช่เดือนล่าสุด
+                if (!el.innerText.includes(targetMonthString) && !el.className.includes(targetMonthString)) {
+                    if (showAllColumns) {
+                        el.classList.remove('hidden-col');
+                    } else {
+                        el.classList.add('hidden-col');
+                    }
+                }
+            });
+
+            // เปลี่ยนข้อความบนปุ่มตามสถานะ
+            if (showAllColumns) {
+                btn.innerText = "ซ่อนเดือนอื่น";
+                btn.style.backgroundColor = "#28a745"; // สีเขียวเมื่อแสดงทั้งหมด
+            } else {
+                btn.innerText = "แสดงเดือนอื่นย้อนหลัง";
+                btn.style.backgroundColor = "#007bff"; // สีน้ำเงินเมื่อซ่อนอยู่
+            }
+        }
+
+        // ฟังก์ชันสำหรับค้นหา
         document.getElementById('searchInput').addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
             let table = document.getElementById("financeTable");
