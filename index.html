@@ -1,381 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Finance</title>
+    <title>My Finance System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
         
-        /* สไตล์สำหรับ Tabs เมนูด้านบน */
-        .tab-container {
-            display: flex;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
-        }
-        .tab-button {
-            padding: 12px 24px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: bold;
-            color: #666;
-            outline: none;
-            transition: 0.2s;
-        }
-        .tab-button.active {
-            color: #007bff;
-            border-bottom: 3px solid #007bff;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+        /* สไตล์สำหรับ Tabs */
+        .tab-container { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 25px; background: white; border-radius: 8px 8px 0 0; }
+        .tab-button { padding: 15px 25px; cursor: pointer; border: none; background: none; font-size: 16px; font-weight: bold; color: #888; outline: none; transition: 0.3s; }
+        .tab-button.active { color: #007bff; border-bottom: 4px solid #007bff; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
 
-        /* จัดตำแหน่งเครื่องมือค้นหาและปุ่ม */
-        .controls-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        #searchInput { 
-            flex: 1; 
-            padding: 12px; 
-            box-sizing: border-box; 
-        }
-        #toggleBtn {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        #toggleBtn:hover { background-color: #0056b3; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        table { width: 100%; border-collapse: collapse; background-color: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #f4f4f4; }
+        /* จัดการตารางและคอนโทรล */
+        .controls-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        #searchInput { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        #toggleBtn { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
-        .text-danger { color: #d9534f !important; font-weight: bold; }
+        .table-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { border: 1px solid #eee; padding: 12px 15px; text-align: center; }
+        th { background-color: #f8f9fa; color: #555; text-transform: uppercase; font-size: 13px; }
+        
+        /* สถานะสีและซ่อน */
+        .text-danger { color: #e74c3c !important; font-weight: bold; }
         .hidden-col { display: none !important; }
 
-        /* สไตล์หน้าฟอร์มคีย์ข้อมูล */
-        .form-group {
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            max-width: 400px;
-        }
-        .form-group label {
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-group input, .form-group select {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 15px;
-        }
-        .submit-btn {
-            padding: 12px 24px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .submit-btn:hover { background-color: #218838; }
-        .info-note {
-            font-size: 13px;
-            color: #17a2b8;
-            margin-top: 5px;
-            font-weight: normal;
-        }
+        /* สไตล์หน้าฟอร์ม */
+        .card-form { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); max-width: 500px; margin: auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .info-note { font-size: 12px; color: #3498db; margin-top: 6px; }
+
+        .submit-btn { width: 100%; padding: 15px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .submit-btn:hover { background-color: #219150; }
+        .submit-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="tab-container">
-        <button class="tab-button active" onclick="switchTab('main-tab')">ตารางสรุปหนี้</button>
-        <button class="tab-button" onclick="switchTab('expense-tab')">บันทึกยอดรายจ่าย</button>
+        <button class="tab-button active" onclick="switchTab(event, 'main-tab')">ตารางสรุปหนี้</button>
+        <button class="tab-button" onclick="switchTab(event, 'expense-tab')">บันทึก/แก้ไขยอดรายเดือน</button>
     </div>
 
     <div id="main-tab" class="tab-content active">
-        <h2>รายการบัตรเครดิต</h2>
         <div class="controls-container">
-            <input type="text" id="searchInput" placeholder="ค้นหาข้อมูล (เช่น ธนาคาร, ชื่อบัตร)...">
+            <input type="text" id="searchInput" placeholder="ค้นหาบัตร หรือธนาคาร...">
             <button id="toggleBtn" onclick="toggleMonths()">แสดงเดือนอื่นย้อนหลัง</button>
         </div>
-
-        <table id="financeTable">
-            <thead><tr id="headerRow"></tr></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <div class="table-wrapper">
+            <table id="financeTable">
+                <thead><tr id="headerRow"></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="expense-tab" class="tab-content">
-        <h2>คีย์ข้อมูลบันทึกยอดรายจ่ายรายเดือน</h2>
-        <form id="financeForm" onsubmit="submitFinanceData(event)">
-            <div class="form-group">
-                <label>รอบเดือนที่ต้องการบันทึก (เช่น พค.69, มิย.69)</label>
-                <input type="text" id="inputMonth" value="พค.69" required onchange="autoFillExistingData()" placeholder="เช่น พค.69">
-            </div>
-            <div class="form-group">
-                <label>ธนาคาร / ชื่อบัตร</label>
-                <select id="inputBank" required onchange="autoFillExistingData()">
-                    <option value="">-- กรุณาเลือกบัตร --</option>
-                </select>
-                <div class="info-note">*หากยังไม่มีรายชื่อบัตร สามารถพิมพ์ชื่อบัตรใหม่ในกล่องด้านล่างนี้ได้เลย:</div>
-                <input type="text" id="inputNewBank" placeholder="กรณีเป็นบัตรใบใหม่ (ถ้าเลือกบัตรด้านบนแล้วไม่ต้องกรอก)" style="margin-top:5px;" oninput="toggleBankInput()">
-            </div>
-            <div class="form-group">
-                <label>วันตัดยอด</label>
-                <input type="number" id="inputLimit" placeholder="เช่น 20">
-            </div>
-            <div class="form-group">
-                <label>ยอดค้าง (ยอดเงินที่เป็นหนี้)</label>
-                <input type="number" step="0.01" id="inputBalance" required placeholder="เช่น 15000">
-            </div>
-            <div class="form-group">
-                <label>ยอดจ่าย (ยอดเงินชำระคืน)</label>
-                <input type="number" step="0.01" id="inputPayAmount" required placeholder="เช่น 15000">
-            </div>
-            <button type="submit" class="submit-btn">ส่งข้อมูลไปที่ Google Sheet</button>
-        </form>
-    </div>
+        <div class="card-form">
+            <h2 style="margin-top:0; color:#2c3e50;">บันทึกข้อมูลรายเดือน</h2>
+            <form id="financeForm" onsubmit="submitFinanceData(event)">
+                <div class="form-group">
+                    <label>รอบเดือน (เช่น พค.69)</label>
+                    <input type="text" id="inputMonth" value="พค.69" required onchange="autoFillExistingData()">
+                </div>
+                
+                <div class="form-group">
+                    <label>ธนาคาร / ชื่อบัตร</label>
+                    <select id="inputBank" onchange="handleBankSelect()">
+                        <option value="">-- เลือกบัตรที่มีอยู่ --</option>
+                    </select>
+                    <div class="info-note">หากไม่พบรายชื่อ ให้กรอกในช่องข้างล่างนี้:</div>
+                    <input type="text" id="inputNewBank" placeholder="ระบุชื่อบัตรใหม่..." style="margin-top:10px;" oninput="handleNewBankInput()">
+                </div>
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwB8Z6RtrKQ5OHT8P5yYfN-zRLYEVgl8G4TAfrJCToaWJhJZS8ECmHCXV-Qwv91hY0g/exec";
-        let showAllColumns = false; 
-        const currentMonth = "พค.69"; // เดือนปัจจุบันสำหรับแสดงผลหน้าแรก
-        let globalData = []; // เก็บตัวแปรข้อมูลชั่วคราวเพื่อใช้ค้นหายอดเงินเก่า
-        
-        // ฟังก์ชันสลับแท็บเมนูหน้าจอ
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        // ดึงข้อมูลตารางและอัปเดตรายชื่อบัตรใน Drop-down
-        function loadTableData() {
-            fetch(API_URL)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data || data.length === 0) return;
-                    globalData = data; // บันทึกข้อมูลเข้า Global variable
-
-                    // --- อัปเดตรายชื่อบัตรลงใน drop-down เมนูอัตโนมัติ ---
-                    const selectBank = document.getElementById('inputBank');
-                    selectBank.innerHTML = '<option value="">-- กรุณาเลือกบัตร --</option>';
-                    data.forEach(item => {
-                        const cardName = item["ชื่อบัตร"] || item["ธนาคาร"] || Object.values(item)[1]; // หาคอลัมน์ชื่อบัตร
-                        if (cardName) {
-                            selectBank.innerHTML += `<option value="${cardName}">${cardName}</option>`;
-                        }
-                    });
-
-                    const keys = Object.keys(data[0]);
-                    const headerRow = document.getElementById('headerRow');
-                    headerRow.innerHTML = "";
-                    
-                    keys.forEach((key) => {
-                        const keyStr = key.toString().trim();
-                        let className = "";
-                        if (isFinanceColumn(keyStr)) {
-                            if (keyStr.includes(currentMonth)) {
-                                className = "class='month-col'";
-                            } else {
-                                className = "class='month-col hidden-col'";
-                            }
-                        }
-                        headerRow.innerHTML += `<th ${className}>${key}</th>`;
-                    });
-                    
-                    const body = document.getElementById('tableBody');
-                    body.innerHTML = "";
-                    
-                    data.forEach(item => {
-                        let row = "<tr>";
-                        keys.forEach((key, index) => {
-                            let val = item[key];
-                            const keyStr = key.toString().trim();
-                            let isNumber = false;
-                            
-                            let num = parseFloat(val);
-                            if (!isNaN(num) && val !== "" && typeof val !== 'boolean') {
-                                isNumber = true;
-                                if (index === 0 || index === 1) {
-                                    val = num.toLocaleString('th-TH', { maximumFractionDigits: 0 });
-                                } else {
-                                    val = num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                }
-                            }
-                            
-                            let cellClass = "";
-                            if (isFinanceColumn(keyStr)) {
-                                if (keyStr.includes(currentMonth)) {
-                                    cellClass = "month-col";
-                                } else {
-                                    cellClass = "month-col hidden-col";
-                                }
-                            }
-                            
-                            if (keyStr.startsWith('ยอดค้าง') && isNumber && num > 0) {
-                                cellClass += " text-danger";
-                            }
-                            
-                            row += `<td class="${cellClass}">${val || '-'}</td>`;
-                        });
-                        row += "</tr>";
-                        body.innerHTML += row;
-                    });
-                })
-                .catch(err => console.error("โหลดข้อมูลตารางไม่ได้:", err));
-        }
-
-        // ฟังก์ชันเมื่อเปลี่ยนชื่อบัตรใหม่ (กรณีไม่มีในระบบดั้งเดิม) ให้ปิดการเลือกบัตรด้านบน
-        function toggleBankInput() {
-            const inputNewBank = document.getElementById('inputNewBank').value;
-            const selectBank = document.getElementById('inputBank');
-            if (inputNewBank.trim() !== "") {
-                selectBank.value = ""; // รีเซ็ต Dropdown
-                selectBank.disabled = true;
-            } else {
-                selectBank.disabled = false;
-            }
-        }
-
-        // --- ระบบ Auto-fill: ดึงข้อมูลเดิมมาแสดงหากเป็นบัตรซ้ำ ---
-        function autoFillExistingData() {
-            const selectedBank = document.getElementById('inputBank').value;
-            const targetMonth = document.getElementById('inputMonth').value.trim();
-            const inputLimit = document.getElementById('inputLimit');
-            const inputBalance = document.getElementById('inputBalance');
-            const inputPayAmount = document.getElementById('inputPayAmount');
-
-            if (!selectedBank || !targetMonth || globalData.length === 0) return;
-
-            // ค้นหาแถวข้อมูลของบัตรที่เลือก
-            const matchedRow = globalData.find(item => {
-                const cardName = item["ชื่อบัตร"] || item["ธนาคาร"] || Object.values(item)[1];
-                return cardName && cardName.toString().trim() === selectedBank.trim();
-            });
-
-            if (matchedRow) {
-                // เติมวันตัดยอดเดิมอัตโนมัติ
-                const limitVal = Object.values(matchedRow)[0];
-                inputLimit.value = (limitVal !== undefined && !isNaN(limitVal)) ? limitVal : "";
-
-                // ค้นหายอดเงินเดิมในเดือนนั้น ๆ (ถ้ามี)
-                const balanceColName = "ยอดค้าง " + targetMonth;
-                const payColName = "ยอดจ่าย " + targetMonth;
-
-                inputBalance.value = matchedRow[balanceColName] !== undefined ? matchedRow[balanceColName] : "";
-                inputPayAmount.value = matchedRow[payColName] !== undefined ? matchedRow[payColName] : "";
-            }
-        }
-
-        function isFinanceColumn(keyStr) {
-            return keyStr.startsWith('ยอดค้าง') || keyStr.startsWith('ยอดจ่าย') || keyStr.startsWith('ยอดชำระ') || keyStr.startsWith('ยอดคงเหลือ');
-        }
-
-        function toggleMonths() {
-            showAllColumns = !showAllColumns;
-            const btn = document.getElementById('toggleBtn');
-            const elements = document.querySelectorAll('.month-col');
-            
-            elements.forEach(el => {
-                const text = el.innerText || el.textContent;
-                if (!text.includes(currentMonth) && !el.className.includes(currentMonth)) {
-                    if (showAllColumns) {
-                        el.classList.remove('hidden-col');
-                    } else {
-                        el.classList.add('hidden-col');
-                    }
-                }
-            });
-
-            if (showAllColumns) {
-                btn.innerText = "ซ่อนเดือนอื่น";
-                btn.style.backgroundColor = "#28a745";
-            } else {
-                btn.innerText = "แสดงเดือนอื่นย้อนหลัง";
-                btn.style.backgroundColor = "#007bff";
-            }
-        }
-
-        // ฟังก์ชันส่งข้อมูลคีย์เข้า Google Sheets
-        function submitFinanceData(event) {
-            event.preventDefault();
-            const submitBtn = document.querySelector('.submit-btn');
-            submitBtn.innerText = "กำลังบันทึกข้อมูล...";
-            submitBtn.disabled = true;
-
-            const selectedBank = document.getElementById('inputBank').value;
-            const newBank = document.getElementById('inputNewBank').value;
-            const finalBankName = selectedBank || newBank;
-
-            if (!finalBankName) {
-                alert("กรุณาเลือกบัตร หรือกรอกชื่อบัตรใหม่ครับ");
-                submitBtn.innerText = "ส่งข้อมูลไปที่ Google Sheet";
-                submitBtn.disabled = false;
-                return;
-            }
-
-            const postData = {
-                month: document.getElementById('inputMonth').value,
-                bank: finalBankName,
-                limit: document.getElementById('inputLimit').value,
-                balance: document.getElementById('inputBalance').value,
-                payAmount: document.getElementById('inputPayAmount').value
-            };
-
-            fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify(postData)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === "success") {
-                    alert("บันทึกและอัปเดตข้อมูลเรียบร้อยแล้ว!");
-                    document.getElementById('financeForm').reset();
-                    document.getElementById('inputBank').disabled = false;
-                    document.getElementById('inputMonth').value = postData.month;
-                    loadTableData(); // รีเฟรชตารางใหม่
-                    switchTab('main-tab'); // สลับกลับไปหน้าสรุป
-                } else {
-                    alert("บันทึกไม่สำเร็จ: " + result.message);
-                }
-            })
-            .catch(err => {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: " + err);
-            })
-            .finally(() => {
-                submitBtn.innerText = "ส่งข้อมูลไปที่ Google Sheet";
-                submitBtn.disabled = false;
-            });
-        }
-
-        document.getElementById('searchInput').addEventListener('keyup', function() {
-            let filter = this.value.toUpperCase();
-            let table = document.getElementById("financeTable");
-            let tr = table.getElementsByTagName("tr");
-            for (let i = 1; i < tr.length; i++) {
-                let rowText = tr[i].innerText.toUpperCase();
-                tr[i].style.display = rowText.indexOf(filter) > -1 ? "" : "none";
-            }
-        });
-
-        window.onload = loadTableData;
-    </script>
-</body>
-</html>
+                <div class="form-group">
+                    <label>วันตัดยอด</label>
+                    <input type="number" id="inputLimit" placeholder="เช่น 20">
+                </div>
+                
+                <div class="form-group">
+                    <label>ยอดค้าง (ยอดหนี้)</label>
